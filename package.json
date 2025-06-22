@@ -1,5 +1,5 @@
 {
-  "name": "breath-dp",
+  "name": "prem-abhaar-dp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:prem-abhaar": "prettier --write .",
+    "format:prem-abhaar:check": "prettier --check .",
     "clean": "rm -rf .next node_modules .yarn/cache"
   },
   "dependencies": {

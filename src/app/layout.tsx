@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'DP Generator',
-  description: 'Generate Breath DP photos',
+  description: 'Generate Prem Abhaar DP photos',
   applicationName: 'DP Generator',
   authors: [{ name: 'Aman Mangal' }],
   keywords: ['image', 'frame', 'generator', 'photo', 'border'],

@@ -1,4 +1,4 @@
-# DP Generator
+# DP Generator Prem Abhaar
 
 A Next.js application for generating framed images. Upload an image and get a beautifully framed version.
 
@@ -35,8 +35,8 @@ To deploy this project, follow the [Next.js deployment documentation](https://ne
 - `yarn build` - Build for production
 - `yarn start` - Start production server
 - `yarn lint` - Run ESLint
-- `yarn format` - Format code with Prettier
-- `yarn format:check` - Check code formatting
+- `yarn format:prem-abhaar` - Format code with Prettier
+- `yarn format:prem-abhaar:check` - Check code format:prem-abhaarting
 
 ## Tech Stack
 

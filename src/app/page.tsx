@@ -8,13 +8,14 @@ type Frame = {
   name: string;
 };
 
+// Define the type for the image state
 type ImageState = {
   frame: Frame | null;
   isLoading: boolean;
 };
 
 // Canvas utility functions
-const createCanvas = (
+const createPremAbhaarCanvas = (
   width: number,
   height: number
 ): [HTMLCanvasElement, CanvasRenderingContext2D] => {
@@ -35,11 +36,11 @@ export default function Home() {
     return new Promise((resolve) => {
       const img = document.createElement('img');
       img.onload = async () => {
-        // Process the uploaded image: scale, center, and mask to fit the frame's transparent circle
+        // Process the uploaded image: scale, center, and mask to fit the Prem Abhaar frame's transparent circle
 
-        const [canvas, ctx] = createCanvas(800, 800);
+        const [canvas, ctx] = createPremAbhaarCanvas(800, 800);
 
-        // === Match the frame's transparent circle to canvas scale ===
+        // === Match the Prem Abhaar frame's transparent circle to canvas scale ===
         // Frame PNG: 6250x6250px, circle center (3125,3125), radius 2625px, margin 500px
         // Canvas: 800x800px, so scale everything down by 800/6250 = 0.128
         const scaleFactor = 800 / 6250;
@@ -64,13 +65,13 @@ export default function Home() {
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
         ctx.restore();
 
-        // Frame: breath-frame (only one)
-        const breathFrame = document.createElement('img');
+        // Prem Abhaar Frame: prem-abhaar-frame (only one)
+        const premAbhaarFrame = document.createElement('img');
         await new Promise<void>((resolve) => {
-          breathFrame.onload = () => resolve();
-          breathFrame.src = '/prem-abhaar-frame.png';
+          premAbhaarFrame.onload = () => resolve();
+          premAbhaarFrame.src = '/prem-abhaar-frame.png';
         });
-        ctx.drawImage(breathFrame, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(premAbhaarFrame, 0, 0, canvas.width, canvas.height);
         const frame = {
           dataUrl: canvas.toDataURL('image/png'),
           name: 'prem-abhaar-dp.png',
@@ -136,11 +137,11 @@ export default function Home() {
 
           {imageState.frame && (
             <div className="w-full max-w-md mx-auto border border-gray-200 bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Breath Frame</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">Prem Abhaar Frame</h2>
               <div className="relative aspect-square rounded-lg overflow-hidden">
                 <img
                   src={imageState.frame.dataUrl}
-                  alt="Breath Frame"
+                  alt="Prem Abhaar Frame"
                   style={{ width: '100%', height: 'auto', borderRadius: '1rem', background: '#eee' }}
                 />
               </div>
@@ -148,7 +149,7 @@ export default function Home() {
                 onClick={() => handleDownload(imageState.frame!)}
                 className="mt-4 w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white px-6 py-3 rounded-lg shadow hover:shadow-lg"
               >
-                Download Frame
+                Download Prem Abhaar
               </button>
 
             </div>
