@@ -1,13 +1,10 @@
 # DP Generator
 
-A Next.js application for generating framed images. Upload an image and get two beautifully framed versions.
+A Next.js application for generating framed images. Upload an image and get a beautifully framed version.
 
 ## Features
 
 - Image upload and processing
-- Two frame styles:
-  - Breath Frame
-  - Shwas Frame
 - Download processed images
 - Responsive design
 - Built with Next.js and TailwindCSS
@@ -43,8 +40,8 @@ To deploy this project, follow the [Next.js deployment documentation](https://ne
 
 ## Tech Stack
 
-- Next.js 14
-- React 18
+- Next.js 15
+- React 19
 - TypeScript
 - Tailwind CSS
 - Sharp for image processing

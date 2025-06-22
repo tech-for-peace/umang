@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+
 
 type Frame = {
   dataUrl: string;
@@ -9,7 +9,7 @@ type Frame = {
 };
 
 type ImageState = {
-  frames: Frame[];
+  frame: Frame | null;
   isLoading: boolean;
 };
 
@@ -27,54 +27,55 @@ const createCanvas = (
 
 export default function Home() {
   const [imageState, setImageState] = useState<ImageState>({
-    frames: [],
+    frame: null,
     isLoading: false,
   });
 
-  const processImage = async (file: File): Promise<Frame[]> => {
+  const processImage = async (file: File): Promise<Frame> => {
     return new Promise((resolve) => {
       const img = document.createElement('img');
       img.onload = async () => {
+        // Process the uploaded image: scale, center, and mask to fit the frame's transparent circle
+
         const [canvas, ctx] = createCanvas(800, 800);
 
-        // Calculate scaling to cover the frame's empty space
-        const framePadding = 50; // Adjust based on your frame's empty space
-        const maxWidth = canvas.width - framePadding * 2;
-        const maxHeight = canvas.height - framePadding * 2;
-        const scale = Math.max(maxWidth / img.width, maxHeight / img.height);
+        // === Match the frame's transparent circle to canvas scale ===
+        // Frame PNG: 6250x6250px, circle center (3125,3125), radius 2625px, margin 500px
+        // Canvas: 800x800px, so scale everything down by 800/6250 = 0.128
+        const scaleFactor = 800 / 6250;
+        const circleCenterX = 3125 * scaleFactor; // 400
+        const circleCenterY = 3125 * scaleFactor; // 400
+        const circleRadius = 2625 * scaleFactor;  // 336
+        // ===========================================================
+
+        // Scale the image to COVER the circle (no whitespace, even for non-square images)
+        const scale = (circleRadius * 2) / Math.min(img.width, img.height);
         const scaledWidth = img.width * scale;
         const scaledHeight = img.height * scale;
-        const x = (canvas.width - scaledWidth) / 2;
-        const y = (canvas.height - scaledHeight) / 2;
+        const x = circleCenterX - scaledWidth / 2;
+        const y = circleCenterY - scaledHeight / 2;
 
-        // Draw the user-uploaded image first
+        // Draw the user-uploaded image as a circle
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(circleCenterX, circleCenterY, circleRadius, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.clip();
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+        ctx.restore();
 
-        // Frame 1: breath-frame
+        // Frame: breath-frame (only one)
         const breathFrame = document.createElement('img');
         await new Promise<void>((resolve) => {
           breathFrame.onload = () => resolve();
-          breathFrame.src = '/breath-frame.png';
+          breathFrame.src = '/prem-abhaar-frame.png';
         });
         ctx.drawImage(breathFrame, 0, 0, canvas.width, canvas.height);
-        const frame1 = {
+        const frame = {
           dataUrl: canvas.toDataURL('image/png'),
-          name: 'breath-dp.png',
+          name: 'prem-abhaar-dp.png',
         };
-
-        // Frame 2: shwas-frame
-        const shwasFrame = document.createElement('img');
-        await new Promise<void>((resolve) => {
-          shwasFrame.onload = () => resolve();
-          shwasFrame.src = '/shwas-frame.png';
-        });
-        ctx.drawImage(shwasFrame, 0, 0, canvas.width, canvas.height);
-        const frame2 = {
-          dataUrl: canvas.toDataURL('image/png'),
-          name: 'shwas-dp.png',
-        };
-
-        resolve([frame1, frame2]);
+        resolve(frame);
       };
       img.src = URL.createObjectURL(file);
     });
@@ -87,8 +88,8 @@ export default function Home() {
     setImageState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      const frames = await processImage(file);
-      setImageState({ frames, isLoading: false });
+      const frame = await processImage(file);
+      setImageState({ frame, isLoading: false });
     } catch (error) {
       console.error('Error processing image:', error);
       alert('Failed to process image. Please try again.');
@@ -133,33 +134,25 @@ export default function Home() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-            {imageState.frames.map((frame, index) => (
-              <div
-                key={index}
-                className="border border-gray-200 bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200"
-              >
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">
-                  {index === 0 ? 'Breath Frame' : 'Shwas Frame'}
-                </h2>
-                <div className="relative aspect-square rounded-lg overflow-hidden">
-                  <Image
-                    src={frame.dataUrl}
-                    alt={`Frame ${index + 1}`}
-                    fill
-                    className="object-contain"
-                    unoptimized
-                  />
-                </div>
-                <button
-                  onClick={() => handleDownload(frame)}
-                  className="mt-4 w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white px-6 py-3 rounded-lg shadow hover:shadow-lg"
-                >
-                  Download Frame
-                </button>
+          {imageState.frame && (
+            <div className="w-full max-w-md mx-auto border border-gray-200 bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">Breath Frame</h2>
+              <div className="relative aspect-square rounded-lg overflow-hidden">
+                <img
+                  src={imageState.frame.dataUrl}
+                  alt="Breath Frame"
+                  style={{ width: '100%', height: 'auto', borderRadius: '1rem', background: '#eee' }}
+                />
               </div>
-            ))}
-          </div>
+              <button
+                onClick={() => handleDownload(imageState.frame!)}
+                className="mt-4 w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white px-6 py-3 rounded-lg shadow hover:shadow-lg"
+              >
+                Download Frame
+              </button>
+
+            </div>
+          )}
         </div>
       </main>
     </div>
