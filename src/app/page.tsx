@@ -115,7 +115,10 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
       <main className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">DP Generator</h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-800">#PremAbhaar</h1>
+          <h4 className="text-xs text-purple-600 font-normal mt-1">Upload your photo to begin.</h4>
+        </div>
 
         <div className="flex flex-col items-center gap-8">
           <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 transition-colors duration-200 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl">
@@ -128,6 +131,7 @@ export default function Home() {
               disabled={imageState.isLoading}
             />
           </label>
+
 
           {imageState.isLoading && (
             <div className="text-center text-gray-600">
@@ -149,7 +153,7 @@ export default function Home() {
                 onClick={() => handleDownload(imageState.frame!)}
                 className="mt-4 w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white px-6 py-3 rounded-lg shadow hover:shadow-lg"
               >
-                Download Prem Abhaar
+                Download Your DP
               </button>
 
             </div>

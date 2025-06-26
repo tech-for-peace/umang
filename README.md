@@ -1,4 +1,4 @@
-# DP Generator Prem Abhaar
+# DP Generator for Prem Abhaar
 
 A Next.js application for generating framed images. Upload an image and get a beautifully framed version.
 
