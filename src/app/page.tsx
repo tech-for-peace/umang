@@ -113,15 +113,12 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
-      <main className="max-w-4xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-800">#PremAbhaar</h1>
-          <h4 className="text-xs text-purple-600 font-normal mt-1">Upload your photo to begin.</h4>
-        </div>
-
-        <div className="flex flex-col items-center gap-8">
-          <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 transition-colors duration-200 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+      <main className="max-w-2xl mx-auto w-full">
+        <div className="flex flex-col items-center gap-2 mb-12 mt-4">
+          <h1 className="text-5xl font-extrabold text-gray-800 mb-1">#PremAbhaar</h1>
+          <div className="text-lg text-gray-500 mb-1">Upload your photo to begin.</div>
+          <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 transition-colors duration-200 text-white px-14 py-6 rounded-xl shadow-md text-2xl font-semibold mt-6">
             Upload Image
             <input
               type="file"
@@ -131,34 +128,33 @@ export default function Home() {
               disabled={imageState.isLoading}
             />
           </label>
-
-
-          {imageState.isLoading && (
-            <div className="text-center text-gray-600">
-              <p>Processing image...</p>
-            </div>
-          )}
-
-          {imageState.frame && (
-            <div className="w-full max-w-md mx-auto border border-gray-200 bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Prem Abhaar Frame</h2>
-              <div className="relative aspect-square rounded-lg overflow-hidden">
-                <img
-                  src={imageState.frame.dataUrl}
-                  alt="Prem Abhaar Frame"
-                  style={{ width: '100%', height: 'auto', borderRadius: '1rem', background: '#eee' }}
-                />
-              </div>
-              <button
-                onClick={() => handleDownload(imageState.frame!)}
-                className="mt-4 w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white px-6 py-3 rounded-lg shadow hover:shadow-lg"
-              >
-                Download Your DP
-              </button>
-
-            </div>
-          )}
         </div>
+
+        {imageState.isLoading && (
+          <div className="text-center text-gray-600 text-xl">
+            <p>Processing image...</p>
+          </div>
+        )}
+
+        {imageState.frame && (
+          <div className="w-full max-w-xl mx-auto rounded-2xl border-2 border-gray-300 bg-white p-10 shadow-md">
+            <h2 className="text-2xl font-bold mb-6 text-gray-700">Preview</h2>
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 mb-6">
+              <img
+                src={imageState.frame.dataUrl}
+                alt="Prem Abhaar Frame"
+                className="w-full h-full object-cover rounded-xl"
+                style={{ background: '#eee' }}
+              />
+            </div>
+            <button
+              onClick={() => handleDownload(imageState.frame!)}
+              className="mt-3 w-full bg-green-600 hover:bg-green-700 transition-colors duration-200 text-white px-10 py-5 rounded-xl shadow-md text-2xl font-semibold"
+            >
+              Download Your DP
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
