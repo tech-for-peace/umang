@@ -113,12 +113,12 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-2 sm:p-4">
       <main className="max-w-2xl mx-auto w-full">
-        <div className="flex flex-col items-center gap-2 mb-12 mt-4">
-          <h1 className="text-5xl font-extrabold text-gray-800 mb-1">#PremAbhaar</h1>
-          <div className="text-lg text-gray-500 mb-1">Upload your photo to begin.</div>
-          <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 transition-colors duration-200 text-white px-14 py-6 rounded-xl shadow-md text-2xl font-semibold mt-6">
+        <div className="flex flex-col items-center gap-3 mb-10 mt-6">
+          <h1 className="text-5xl font-extrabold text-blue-700 mb-1 tracking-tight">#PremAbhaar</h1>
+          <div className="text-base sm:text-lg text-gray-500 mb-2">Upload your photo to begin.</div>
+          <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 transition-all duration-200 text-white px-14 py-5 rounded-xl shadow text-2xl font-semibold mt-6 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
             Upload Image
             <input
               type="file"
@@ -131,25 +131,25 @@ export default function Home() {
         </div>
 
         {imageState.isLoading && (
-          <div className="text-center text-gray-600 text-xl">
+          <div className="text-center text-blue-600 text-xl font-medium animate-pulse mb-8">
             <p>Processing image...</p>
           </div>
         )}
 
         {imageState.frame && (
-          <div className="w-full max-w-xl mx-auto rounded-2xl border-2 border-gray-300 bg-white p-10 shadow-md">
-            <h2 className="text-2xl font-bold mb-6 text-gray-700">Preview</h2>
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 mb-6">
+          <div className="w-full max-w-xl mx-auto rounded-2xl border border-gray-200 bg-white p-8 shadow-lg flex flex-col items-center">
+            <h2 className="text-2xl font-bold mb-4 text-blue-700 tracking-tight">Preview</h2>
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 mb-5 shadow-sm flex items-center justify-center">
               <img
                 src={imageState.frame.dataUrl}
                 alt="Prem Abhaar Frame"
-                className="w-full h-full object-cover rounded-xl"
-                style={{ background: '#eee' }}
+                className="w-full h-full object-cover rounded-xl border border-gray-200"
+                style={{ background: '#f3f4f6' }}
               />
             </div>
             <button
               onClick={() => handleDownload(imageState.frame!)}
-              className="mt-3 w-full bg-green-600 hover:bg-green-700 transition-colors duration-200 text-white px-10 py-5 rounded-xl shadow-md text-2xl font-semibold"
+              className="mt-2 w-full bg-green-600 hover:bg-green-700 transition-all duration-200 text-white px-10 py-5 rounded-xl shadow text-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-green-300"
             >
               Download Your DP
             </button>
