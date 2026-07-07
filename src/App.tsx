@@ -1,14 +1,42 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import Footer from './Footer';
 
-const FRAME_SRC = '/prem-abhaar-frame.png';
-const OUTPUT_NAME = 'prem-abhaar-dp.png';
 const CANVAS_SIZE = 800;
 const CIRCLE_RADIUS = 336; // 2625 * (800 / 6250)
 
-type Frame = {
+const FRAMES = [
+  {
+    id: 'heartfulness',
+    label: 'Heartfulness',
+    src: '/frame-heartfulness.png',
+    filename: 'umang-dp-heartfulness.png',
+  },
+  {
+    id: 'joy',
+    label: 'Joy',
+    src: '/frame-joy.png',
+    filename: 'umang-dp-joy.png',
+  },
+  {
+    id: 'hnp',
+    label: 'HnP',
+    src: '/frame-hnp.png',
+    filename: 'umang-dp-hnp.png',
+  },
+  {
+    id: 'clarity',
+    label: 'Clarity',
+    src: '/frame-clarity.png',
+    filename: 'umang-dp-clarity.png',
+  },
+] as const;
+
+type FrameOption = (typeof FRAMES)[number];
+
+type GeneratedFrame = {
   dataUrl: string;
   name: string;
+  label: string;
 };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -29,8 +57,11 @@ async function imageFromFile(file: File): Promise<HTMLImageElement> {
   }
 }
 
-async function frameImage(file: File): Promise<Frame> {
-  const [sourceImg, frameImg] = await Promise.all([imageFromFile(file), loadImage(FRAME_SRC)]);
+async function frameImage(file: File, frameOption: FrameOption): Promise<GeneratedFrame> {
+  const [sourceImg, frameImg] = await Promise.all([
+    imageFromFile(file),
+    loadImage(frameOption.src),
+  ]);
 
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_SIZE;
@@ -55,11 +86,16 @@ async function frameImage(file: File): Promise<Frame> {
 
   return {
     dataUrl: canvas.toDataURL('image/png'),
-    name: OUTPUT_NAME,
+    name: frameOption.filename,
+    label: frameOption.label,
   };
 }
 
-function downloadFrame(frame: Frame) {
+async function generateFrames(file: File): Promise<GeneratedFrame[]> {
+  return Promise.all(FRAMES.map((frameOption) => frameImage(file, frameOption)));
+}
+
+function downloadFrame(frame: GeneratedFrame) {
   const link = document.createElement('a');
   link.href = frame.dataUrl;
   link.download = frame.name;
@@ -68,18 +104,42 @@ function downloadFrame(frame: Frame) {
   document.body.removeChild(link);
 }
 
+async function dataUrlToFile(frame: GeneratedFrame): Promise<File> {
+  const response = await fetch(frame.dataUrl);
+  const blob = await response.blob();
+  return new File([blob], frame.name, { type: blob.type });
+}
+
+async function shareToWhatsApp(frame: GeneratedFrame) {
+  const file = await dataUrlToFile(frame);
+  const shareData = { files: [file] };
+
+  if (navigator.canShare?.(shareData)) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+    }
+  }
+
+  window.open('https://wa.me/', '_blank', 'noopener,noreferrer');
+}
+
 export default function App() {
-  const [frame, setFrame] = useState<Frame | null>(null);
+  const [frames, setFrames] = useState<GeneratedFrame[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsLoading(true);
+    setFrames(null);
     try {
-      setFrame(await frameImage(file));
-    } catch {
+      setFrames(await generateFrames(file));
+    } catch (error) {
+      console.error('Failed to process image:', error);
       alert('Failed to process image. Please try again.');
     } finally {
       setIsLoading(false);
@@ -87,13 +147,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4 pb-16">
-      <main className="mx-auto flex max-w-2xl flex-col items-center gap-6 py-12">
-        <h1 className="text-5xl font-extrabold tracking-tight text-blue-700">#PremAbhaar</h1>
-        <p className="text-lg text-gray-500">Upload your photo to begin.</p>
+    <div className="flex min-h-screen flex-col p-4">
+      <header className="flex flex-col items-center py-4 text-center sm:py-6">
+        <h1 className="bg-gradient-to-r from-umang-purple via-umang-cyan to-umang-green bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+          Umang
+        </h1>
+      </header>
 
-        <label className="cursor-pointer rounded-xl bg-blue-600 px-14 py-5 text-2xl font-semibold text-white shadow transition-colors hover:bg-blue-700">
-          Upload Image
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center gap-3">
+        <label className="flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-4 text-center shadow-sm transition-colors hover:border-umang-cyan hover:bg-slate-50">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-umang-cyan"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" x2="12" y1="3" y2="15" />
+          </svg>
+          <span className="text-sm font-semibold text-slate-700">Upload your photo</span>
           <input
             type="file"
             accept="image/*"
@@ -104,26 +184,71 @@ export default function App() {
         </label>
 
         {isLoading && (
-          <p className="animate-pulse text-xl font-medium text-blue-600">Processing image...</p>
+          <p className="animate-pulse text-base font-medium text-umang-cyan">
+            Processing your frames...
+          </p>
         )}
 
-        {frame && (
-          <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
-            <h2 className="mb-4 text-center text-2xl font-bold text-blue-700">Preview</h2>
-            <img
-              src={frame.dataUrl}
-              alt="Prem Abhaar DP"
-              className="mb-5 aspect-square w-full rounded-xl border border-gray-200 bg-gray-100 object-cover"
-            />
-            <button
-              onClick={() => downloadFrame(frame)}
-              className="w-full rounded-xl bg-green-600 px-10 py-5 text-2xl font-semibold text-white shadow transition-colors hover:bg-green-700"
-            >
-              Download Your DP
-            </button>
+        {frames && (
+          <div className="w-full">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              {frames.map((frame) => (
+                <div
+                  key={frame.label}
+                  className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <img
+                    src={frame.dataUrl}
+                    alt={`Umang DP - ${frame.label}`}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute right-2 top-2 flex gap-1.5">
+                    <button
+                      onClick={() => downloadFrame(frame)}
+                      className="rounded-full bg-white/90 p-1.5 text-umang-cyan shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+                      aria-label="Download"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => shareToWhatsApp(frame)}
+                      className="rounded-full bg-white/90 p-1.5 text-[#25D366] shadow-sm backdrop-blur-sm transition-colors hover:bg-white lg:hidden"
+                      aria-label="Share on WhatsApp"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.13 1.58 5.943L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </main>
+
       <Footer />
     </div>
   );
