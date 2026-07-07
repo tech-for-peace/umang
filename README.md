@@ -1,13 +1,13 @@
 # DP Generator for Prem Abhaar
 
-A Next.js application for generating framed images. Upload an image and get a beautifully framed version.
+A React + Vite app for generating framed images. Upload an image and get a beautifully framed version.
 
 ## Features
 
 - Image upload and processing
 - Download processed images
 - Responsive design
-- Built with Next.js and TailwindCSS
+- Built with React, Vite, and Tailwind CSS
 
 ## Getting Started
 
@@ -23,25 +23,24 @@ A Next.js application for generating framed images. Upload an image and get a be
    yarn dev
    ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser to view the app.
+3. Open [http://localhost:5173](http://localhost:5173) in your browser to view the app.
 
 ## Deployment
 
-To deploy this project, follow the [Next.js deployment documentation](https://nextjs.org/docs/deployment).
+To deploy this project, build the `dist/` folder with `yarn build` and serve it from any static host.
 
 ## Available Scripts
 
 - `yarn dev` - Start development server
 - `yarn build` - Build for production
-- `yarn start` - Start production server
+- `yarn preview` - Preview the production build
 - `yarn lint` - Run ESLint
-- `yarn format:prem-abhaar` - Format code with Prettier
-- `yarn format:prem-abhaar:check` - Check code format:prem-abhaarting
+- `yarn format` - Format code with Prettier
+- `yarn format:check` - Check code formatting
 
 ## Tech Stack
 
-- Next.js 15
 - React 19
+- Vite
 - TypeScript
 - Tailwind CSS
-- Sharp for image processing
