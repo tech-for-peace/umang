@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    branches:
+      - main
+
+jobs:
+  build:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.12'
+
+      - run: corepack enable
+      - run: corepack prepare yarn@4.6.0 --activate
+      - run: yarn install --immutable
+      - run: yarn lint
+      - run: yarn build
+      - run: yarn format:check

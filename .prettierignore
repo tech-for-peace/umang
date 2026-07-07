@@ -1,7 +1,5 @@
 .yarn
-.next
 node_modules
 public
-build
 dist
 *.d.ts

@@ -1,30 +1,26 @@
-import { useState, type ChangeEvent } from 'react';
-import Footer from './Footer';
+import { useRef, useState, type ChangeEvent } from 'react';
+import Footer from './Footer.tsx';
 
 const CANVAS_SIZE = 800;
 const CIRCLE_RADIUS = 336; // 2625 * (800 / 6250)
 
 const FRAMES = [
   {
-    id: 'heartfulness',
     label: 'Heartfulness',
     src: '/frame-heartfulness.png',
     filename: 'umang-dp-heartfulness.png',
   },
   {
-    id: 'joy',
     label: 'Joy',
     src: '/frame-joy.png',
     filename: 'umang-dp-joy.png',
   },
   {
-    id: 'hnp',
     label: 'HnP',
     src: '/frame-hnp.png',
     filename: 'umang-dp-hnp.png',
   },
   {
-    id: 'clarity',
     label: 'Clarity',
     src: '/frame-clarity.png',
     filename: 'umang-dp-clarity.png',
@@ -129,6 +125,7 @@ async function shareToWhatsApp(frame: GeneratedFrame) {
 export default function App() {
   const [frames, setFrames] = useState<GeneratedFrame[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,6 +140,9 @@ export default function App() {
       alert('Failed to process image. Please try again.');
     } finally {
       setIsLoading(false);
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
     }
   };
 
@@ -154,7 +154,7 @@ export default function App() {
         </h1>
       </header>
 
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center gap-3">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-3">
         <label className="flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-4 text-center shadow-sm transition-colors hover:border-umang-cyan hover:bg-slate-50">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -175,6 +175,7 @@ export default function App() {
           </svg>
           <span className="text-sm font-semibold text-slate-700">Upload your photo</span>
           <input
+            ref={inputRef}
             type="file"
             accept="image/*"
             className="hidden"
@@ -190,11 +191,11 @@ export default function App() {
         )}
 
         {frames && (
-          <div className="w-full">
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="flex w-full flex-1 flex-col items-center justify-center">
+            <div className="grid w-full grid-cols-1 gap-2 lg:grid-cols-2 sm:gap-3">
               {frames.map((frame) => (
                 <div
-                  key={frame.label}
+                  key={frame.name}
                   className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                 >
                   <img
