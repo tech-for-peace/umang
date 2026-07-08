@@ -1,8 +1,14 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import Footer from './Footer.tsx';
-
-const CANVAS_SIZE = 800;
-const CIRCLE_RADIUS = 336; // 2625 * (800 / 6250)
+import PhotoEditor from './PhotoEditor.tsx';
+import SafeImage from './SafeImage.tsx';
+import {
+  CANVAS_SIZE,
+  DEFAULT_TRANSFORM,
+  drawPhotoInCircle,
+  type PhotoTransform,
+} from './imageTransform.ts';
+import { isSafeImageUrl, toSafeImageUrl } from './safeImageUrl.ts';
 
 const FRAMES = [
   {
@@ -31,17 +37,52 @@ type FrameOption = (typeof FRAMES)[number];
 
 type GeneratedFrame = {
   dataUrl: string;
-  file: File;
+  blob: Blob | null;
   name: string;
   label: string;
 };
 
+async function createImageBlobFromCanvas(
+  canvas: HTMLCanvasElement,
+  dataUrl: string
+): Promise<Blob> {
+  const blobFromCanvas = await new Promise<Blob | null>((resolve) => {
+    if (!canvas.toBlob) {
+      resolve(null);
+      return;
+    }
+
+    canvas.toBlob(resolve, 'image/png');
+  });
+
+  if (blobFromCanvas) return blobFromCanvas;
+
+  const response = await fetch(toSafeImageUrl(dataUrl));
+  if (!response.ok) {
+    throw new Error('Failed to fetch image data URL');
+  }
+
+  const blobFromFetch = await response.blob();
+  if (blobFromFetch.size === 0) {
+    throw new Error('Failed to create image blob');
+  }
+
+  return blobFromFetch;
+}
+
+function createShareFile(frame: GeneratedFrame): File | null {
+  if (!frame.blob) return null;
+  return new File([frame.blob], frame.name, { type: 'image/png' });
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
+  const safeSrc = toSafeImageUrl(src);
+
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = src;
+    img.src = safeSrc;
   });
 }
 
@@ -54,7 +95,11 @@ async function imageFromFile(file: File): Promise<HTMLImageElement> {
   }
 }
 
-async function frameImage(file: File, frameOption: FrameOption): Promise<GeneratedFrame> {
+async function frameImage(
+  file: File,
+  frameOption: FrameOption,
+  transform: PhotoTransform
+): Promise<GeneratedFrame> {
   const [sourceImg, frameImg] = await Promise.all([
     imageFromFile(file),
     loadImage(frameOption.src),
@@ -67,89 +112,145 @@ async function frameImage(file: File, frameOption: FrameOption): Promise<Generat
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get canvas context');
 
-  const center = CANVAS_SIZE / 2;
-  const scale = (CIRCLE_RADIUS * 2) / Math.min(sourceImg.width, sourceImg.height);
-  const width = sourceImg.width * scale;
-  const height = sourceImg.height * scale;
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(center, center, CIRCLE_RADIUS, 0, Math.PI * 2);
-  ctx.clip();
-  ctx.drawImage(sourceImg, center - width / 2, center - height / 2, width, height);
-  ctx.restore();
-
+  drawPhotoInCircle(ctx, sourceImg, sourceImg.width, sourceImg.height, transform);
   ctx.drawImage(frameImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
   const dataUrl = canvas.toDataURL('image/png');
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (result) => (result ? resolve(result) : reject(new Error('Failed to create image blob'))),
-      'image/png'
-    );
-  });
+
+  let blob: Blob | null = null;
+  try {
+    blob = await createImageBlobFromCanvas(canvas, dataUrl);
+  } catch (error) {
+    console.warn(`Could not create shareable blob for ${frameOption.label}:`, error);
+  }
 
   return {
     dataUrl,
-    file: new File([blob], frameOption.filename, { type: 'image/png' }),
+    blob,
     name: frameOption.filename,
     label: frameOption.label,
   };
 }
 
-async function generateFrames(file: File): Promise<GeneratedFrame[]> {
-  return Promise.all(FRAMES.map((frameOption) => frameImage(file, frameOption)));
+async function generateFrames(file: File, transform: PhotoTransform): Promise<GeneratedFrame[]> {
+  return Promise.all(FRAMES.map((frameOption) => frameImage(file, frameOption, transform)));
 }
 
 function downloadFrame(frame: GeneratedFrame) {
-  const link = document.createElement('a');
-  link.href = frame.dataUrl;
-  link.download = frame.name;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const objectUrl = frame.blob ? URL.createObjectURL(frame.blob) : null;
+
+  try {
+    const href = objectUrl ?? toSafeImageUrl(frame.dataUrl);
+    const link = document.createElement('a');
+    link.href = href;
+    link.download = frame.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } finally {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }
 }
 
 function shareToWhatsApp(frame: GeneratedFrame) {
-  const shareData = { files: [frame.file], title: 'Umang DP' };
+  const file = createShareFile(frame);
 
-  if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-    void navigator.share(shareData).catch((error: unknown) => {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      shareFallback(frame);
-    });
+  if (!file) {
+    alert('This frame could not be prepared for sharing. Tap the download button instead.');
     return;
   }
 
-  shareFallback(frame);
-}
+  if (!navigator.share) {
+    alert(
+      'Sharing is not supported in this browser. Tap the download button, then share from your gallery in WhatsApp.'
+    );
+    return;
+  }
 
-function shareFallback(frame: GeneratedFrame) {
-  downloadFrame(frame);
-  alert('Image saved to your device. Open WhatsApp and share it from your photos.');
+  const shareData = { files: [file] };
+
+  if (navigator.canShare && !navigator.canShare(shareData)) {
+    alert(
+      'Sharing is not supported in this browser. Tap the download button, then share from your gallery in WhatsApp.'
+    );
+    return;
+  }
+
+  const handleShareFailure = (error: unknown) => {
+    if (error instanceof Error && error.name === 'AbortError') return;
+    console.error('Share failed:', error);
+    alert(
+      'Could not open the share menu. Tap the download button, then share from your gallery in WhatsApp.'
+    );
+  };
+
+  // Web Share API is the standard way to share images to WhatsApp from mobile web.
+  // wa.me / whatsapp:// links only support text, not file attachments.
+  try {
+    void navigator.share(shareData).catch(handleShareFailure);
+  } catch (error) {
+    handleShareFailure(error);
+  }
 }
 
 export default function App() {
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [photoTransform, setPhotoTransform] = useState<PhotoTransform>(DEFAULT_TRANSFORM);
   const [frames, setFrames] = useState<GeneratedFrame[] | null>(null);
+  const [isReEditing, setIsReEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const resetUpload = () => {
+    setUploadedFile(null);
+    setPhotoTransform(DEFAULT_TRANSFORM);
+    setFrames(null);
+    setIsReEditing(false);
+    setPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
+
+  const handleUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsLoading(true);
     setFrames(null);
+    setIsReEditing(false);
+    setPhotoTransform(DEFAULT_TRANSFORM);
+    setUploadedFile(file);
+    setPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
+
+  const handleConfirmCrop = async (transform: PhotoTransform) => {
+    if (!uploadedFile) return;
+
+    setPhotoTransform(transform);
+    setIsLoading(true);
     try {
-      setFrames(await generateFrames(file));
+      setFrames(await generateFrames(uploadedFile, transform));
     } catch (error) {
       console.error('Failed to process image:', error);
       alert('Failed to process image. Please try again.');
     } finally {
       setIsLoading(false);
-      if (inputRef.current) {
-        inputRef.current.value = '';
-      }
     }
   };
 
@@ -162,34 +263,48 @@ export default function App() {
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-3">
-        <label className="flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-4 text-center shadow-sm transition-colors hover:border-umang-cyan hover:bg-slate-50">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-umang-cyan"
-            aria-hidden="true"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" x2="12" y1="3" y2="15" />
-          </svg>
-          <span className="text-sm font-semibold text-slate-700">Upload your photo</span>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            disabled={isLoading}
-            onChange={handleUpload}
+        {!previewUrl && (
+          <label className="flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-4 text-center shadow-sm transition-colors hover:border-umang-cyan hover:bg-slate-50">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-umang-cyan"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" x2="12" y1="3" y2="15" />
+            </svg>
+            <span className="text-sm font-semibold text-slate-700">Upload your photo</span>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={isLoading}
+              onChange={handleUpload}
+            />
+          </label>
+        )}
+
+        {previewUrl && isSafeImageUrl(previewUrl) && !frames && !isLoading && (
+          <PhotoEditor
+            key={previewUrl}
+            imageUrl={previewUrl}
+            frameSrc={FRAMES[0].src}
+            initialTransform={photoTransform}
+            confirmLabel={isReEditing ? 'Done' : 'Next'}
+            onConfirm={handleConfirmCrop}
+            onChangePhoto={resetUpload}
           />
-        </label>
+        )}
 
         {isLoading && (
           <p className="animate-pulse text-base font-medium text-umang-cyan">
@@ -198,14 +313,33 @@ export default function App() {
         )}
 
         {frames && (
-          <div className="flex w-full flex-1 flex-col items-center justify-center">
+          <div className="flex w-full flex-1 flex-col items-center justify-center gap-3">
+            <div className="flex w-full max-w-md flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReEditing(true);
+                  setFrames(null);
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+              >
+                Adjust photo
+              </button>
+              <button
+                type="button"
+                onClick={resetUpload}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+              >
+                Upload new photo
+              </button>
+            </div>
             <div className="grid w-full grid-cols-1 gap-2 lg:grid-cols-2 sm:gap-3">
               {frames.map((frame) => (
                 <div
                   key={frame.name}
                   className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                 >
-                  <img
+                  <SafeImage
                     src={frame.dataUrl}
                     alt={`Umang DP - ${frame.label}`}
                     className="h-full w-full object-cover"
