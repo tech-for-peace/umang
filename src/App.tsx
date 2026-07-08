@@ -31,6 +31,7 @@ type FrameOption = (typeof FRAMES)[number];
 
 type GeneratedFrame = {
   dataUrl: string;
+  file: File;
   name: string;
   label: string;
 };
@@ -80,8 +81,17 @@ async function frameImage(file: File, frameOption: FrameOption): Promise<Generat
 
   ctx.drawImage(frameImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
+  const dataUrl = canvas.toDataURL('image/png');
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => (result ? resolve(result) : reject(new Error('Failed to create image blob'))),
+      'image/png'
+    );
+  });
+
   return {
-    dataUrl: canvas.toDataURL('image/png'),
+    dataUrl,
+    file: new File([blob], frameOption.filename, { type: 'image/png' }),
     name: frameOption.filename,
     label: frameOption.label,
   };
@@ -100,26 +110,23 @@ function downloadFrame(frame: GeneratedFrame) {
   document.body.removeChild(link);
 }
 
-async function dataUrlToFile(frame: GeneratedFrame): Promise<File> {
-  const response = await fetch(frame.dataUrl);
-  const blob = await response.blob();
-  return new File([blob], frame.name, { type: blob.type });
-}
+function shareToWhatsApp(frame: GeneratedFrame) {
+  const shareData = { files: [frame.file], title: 'Umang DP' };
 
-async function shareToWhatsApp(frame: GeneratedFrame) {
-  const file = await dataUrlToFile(frame);
-  const shareData = { files: [file] };
-
-  if (navigator.canShare?.(shareData)) {
-    try {
-      await navigator.share(shareData);
-      return;
-    } catch (error) {
+  if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+    void navigator.share(shareData).catch((error: unknown) => {
       if (error instanceof Error && error.name === 'AbortError') return;
-    }
+      shareFallback(frame);
+    });
+    return;
   }
 
-  window.open('https://wa.me/', '_blank', 'noopener,noreferrer');
+  shareFallback(frame);
+}
+
+function shareFallback(frame: GeneratedFrame) {
+  downloadFrame(frame);
+  alert('Image saved to your device. Open WhatsApp and share it from your photos.');
 }
 
 export default function App() {
