@@ -12,9 +12,9 @@ import { isSafeImageUrl, toSafeImageUrl } from './safeImageUrl.ts';
 
 const FRAMES = [
   {
-    label: 'Heartfulness',
-    src: '/frame-heartfulness.png',
-    filename: 'umang-dp-heartfulness.png',
+    label: 'Peace & Humanity',
+    src: '/frame-hnp.png',
+    filename: 'umang-dp-hnp.png',
   },
   {
     label: 'Joy',
@@ -22,14 +22,14 @@ const FRAMES = [
     filename: 'umang-dp-joy.png',
   },
   {
-    label: 'HnP',
-    src: '/frame-hnp.png',
-    filename: 'umang-dp-hnp.png',
-  },
-  {
     label: 'Clarity',
     src: '/frame-clarity.png',
     filename: 'umang-dp-clarity.png',
+  },
+  {
+    label: 'Heartfulness',
+    src: '/frame-heartfulness.png',
+    filename: 'umang-dp-heartfulness.png',
   },
 ] as const;
 
