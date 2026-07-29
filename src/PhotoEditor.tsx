@@ -62,8 +62,10 @@ export default function PhotoEditor({
   const transformRef = useRef(transform);
   const imageSizeRef = useRef(imageSize);
 
-  transformRef.current = transform;
-  imageSizeRef.current = imageSize;
+  useEffect(() => {
+    transformRef.current = transform;
+    imageSizeRef.current = imageSize;
+  }, [transform, imageSize]);
 
   useEffect(() => {
     const interaction = interactionRef.current;
