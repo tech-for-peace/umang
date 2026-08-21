@@ -10,6 +10,9 @@ export default {
           cyan: '#33ccbf',
           green: '#7dd24a',
         },
+        peace: {
+          navy: '#004aad',
+        },
       },
       fontFamily: {
         sans: ['"Source Sans 3"', 'sans-serif'],

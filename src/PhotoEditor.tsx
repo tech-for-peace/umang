@@ -20,6 +20,8 @@ import {
 type PhotoEditorProps = {
   imageUrl: string;
   frameSrc: string;
+  rangeAccentClassName: string;
+  confirmClassName: string;
   initialTransform?: PhotoTransform;
   confirmLabel?: string;
   onConfirm: (transform: PhotoTransform) => void;
@@ -47,6 +49,8 @@ type PinchState = {
 export default function PhotoEditor({
   imageUrl,
   frameSrc,
+  rangeAccentClassName,
+  confirmClassName,
   initialTransform = DEFAULT_TRANSFORM,
   confirmLabel = 'Next',
   onConfirm,
@@ -253,7 +257,7 @@ export default function PhotoEditor({
           step="0.01"
           value={transform.zoom}
           onChange={(event) => updateTransform({ ...transform, zoom: Number(event.target.value) })}
-          className="h-2 flex-1 cursor-pointer accent-umang-cyan"
+          className={`h-2 flex-1 cursor-pointer ${rangeAccentClassName}`}
           aria-label="Zoom"
         />
       </label>
@@ -277,7 +281,7 @@ export default function PhotoEditor({
           type="button"
           onClick={() => onConfirm(transform)}
           disabled={!imageSize}
-          className="ml-auto rounded-xl bg-umang-cyan px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`ml-auto rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${confirmClassName}`}
         >
           {confirmLabel}
         </button>
