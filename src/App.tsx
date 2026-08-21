@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { CAMPAIGNS, campaignHref, parseCampaignId, type FrameOption } from './campaigns.ts';
 import Footer from './Footer.tsx';
 import PhotoEditor from './PhotoEditor.tsx';
 import SafeImage from './SafeImage.tsx';
@@ -9,31 +10,6 @@ import {
   type PhotoTransform,
 } from './imageTransform.ts';
 import { isSafeImageUrl, toSafeImageUrl } from './safeImageUrl.ts';
-
-const FRAMES = [
-  {
-    label: 'Peace & Humanity',
-    src: '/frame-hnp.png',
-    filename: 'umang-dp-hnp.png',
-  },
-  {
-    label: 'Joy',
-    src: '/frame-joy.png',
-    filename: 'umang-dp-joy.png',
-  },
-  {
-    label: 'Clarity',
-    src: '/frame-clarity.png',
-    filename: 'umang-dp-clarity.png',
-  },
-  {
-    label: 'Heartfulness',
-    src: '/frame-heartfulness.png',
-    filename: 'umang-dp-heartfulness.png',
-  },
-] as const;
-
-type FrameOption = (typeof FRAMES)[number];
 
 type GeneratedFrame = {
   dataUrl: string;
@@ -132,8 +108,12 @@ async function frameImage(
   };
 }
 
-async function generateFrames(file: File, transform: PhotoTransform): Promise<GeneratedFrame[]> {
-  return Promise.all(FRAMES.map((frameOption) => frameImage(file, frameOption, transform)));
+async function generateFrames(
+  file: File,
+  transform: PhotoTransform,
+  frames: readonly FrameOption[]
+): Promise<GeneratedFrame[]> {
+  return Promise.all(frames.map((frameOption) => frameImage(file, frameOption, transform)));
 }
 
 function downloadFrame(frame: GeneratedFrame) {
@@ -194,6 +174,7 @@ function shareToWhatsApp(frame: GeneratedFrame) {
 }
 
 export default function App() {
+  const campaign = CAMPAIGNS[parseCampaignId(window.location.search)];
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [photoTransform, setPhotoTransform] = useState<PhotoTransform>(DEFAULT_TRANSFORM);
@@ -201,6 +182,14 @@ export default function App() {
   const [isReEditing, setIsReEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.title = campaign.documentTitle;
+    const description = document.querySelector('meta[name="description"]');
+    if (description) {
+      description.setAttribute('content', campaign.description);
+    }
+  }, [campaign]);
 
   useEffect(() => {
     return () => {
@@ -245,7 +234,7 @@ export default function App() {
     setPhotoTransform(transform);
     setIsLoading(true);
     try {
-      setFrames(await generateFrames(uploadedFile, transform));
+      setFrames(await generateFrames(uploadedFile, transform, campaign.frames));
     } catch (error) {
       console.error('Failed to process image:', error);
       alert('Failed to process image. Please try again.');
@@ -254,17 +243,42 @@ export default function App() {
     }
   };
 
+  const switcherTabClass = (active: boolean) =>
+    `rounded-full px-3 py-1 text-xs font-semibold transition-colors sm:text-sm ${
+      active ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+    }`;
+
   return (
     <div className="flex min-h-screen flex-col p-4">
       <header className="flex flex-col items-center py-4 text-center sm:py-6">
         <h1 className="bg-gradient-to-r from-umang-purple via-umang-cyan to-umang-green bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
           Umang
         </h1>
+        <nav
+          className="mt-4 flex rounded-full border border-slate-200 bg-slate-100 p-1"
+          aria-label="Occasion"
+        >
+          {Object.values(CAMPAIGNS).map((option) => {
+            const active = option.id === campaign.id;
+            return (
+              <a
+                key={option.id}
+                href={campaignHref(option.id)}
+                className={switcherTabClass(active)}
+                aria-current={active ? 'page' : undefined}
+              >
+                {option.name}
+              </a>
+            );
+          })}
+        </nav>
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-3">
         {!previewUrl && (
-          <label className="flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-4 text-center shadow-sm transition-colors hover:border-umang-cyan hover:bg-slate-50">
+          <label
+            className={`flex w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-4 text-center shadow-sm transition-colors hover:bg-slate-50 ${campaign.accent.borderHover}`}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="28"
@@ -275,7 +289,7 @@ export default function App() {
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-umang-cyan"
+              className={campaign.accent.text}
               aria-hidden="true"
             >
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -298,7 +312,9 @@ export default function App() {
           <PhotoEditor
             key={previewUrl}
             imageUrl={previewUrl}
-            frameSrc={FRAMES[0].src}
+            frameSrc={campaign.frames[0].src}
+            rangeAccentClassName={campaign.accent.range}
+            confirmClassName={campaign.accent.confirm}
             initialTransform={photoTransform}
             confirmLabel={isReEditing ? 'Done' : 'Next'}
             onConfirm={handleConfirmCrop}
@@ -307,8 +323,8 @@ export default function App() {
         )}
 
         {isLoading && (
-          <p className="animate-pulse text-base font-medium text-umang-cyan">
-            Processing your frames...
+          <p className={`animate-pulse text-base font-medium ${campaign.accent.text}`}>
+            Processing your {campaign.frames.length === 1 ? 'frame' : 'frames'}...
           </p>
         )}
 
@@ -333,7 +349,11 @@ export default function App() {
                 Upload new photo
               </button>
             </div>
-            <div className="grid w-full grid-cols-1 gap-2 lg:grid-cols-2 sm:gap-3">
+            <div
+              className={`grid w-full gap-2 sm:gap-3 ${
+                frames.length === 1 ? 'max-w-md grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'
+              }`}
+            >
               {frames.map((frame) => (
                 <div
                   key={frame.name}
@@ -341,13 +361,13 @@ export default function App() {
                 >
                   <SafeImage
                     src={frame.dataUrl}
-                    alt={`Umang DP - ${frame.label}`}
+                    alt={`${campaign.name} DP - ${frame.label}`}
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute right-2 top-2 flex gap-1.5">
                     <button
                       onClick={() => downloadFrame(frame)}
-                      className="rounded-full bg-white/90 p-1.5 text-umang-cyan shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+                      className={`rounded-full bg-white/90 p-1.5 shadow-sm backdrop-blur-sm transition-colors hover:bg-white ${campaign.accent.text}`}
                       aria-label="Download"
                     >
                       <svg
