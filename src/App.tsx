@@ -391,7 +391,7 @@ export default function App() {
         )}
 
         {frames && (
-          <div className="flex w-full flex-1 flex-col items-center justify-center gap-3">
+          <div className="flex w-full flex-col items-center gap-2">
             <div className="flex w-full max-w-md flex-wrap justify-center gap-2">
               <button
                 type="button"
