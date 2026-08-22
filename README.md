@@ -2,7 +2,7 @@
 
 Upload a photo and get a framed DP to download or share.
 
-Switch between International Peace Day and Guru Puja frames from the header. Guru Puja is also available at `/?campaign=guru-puja`.
+`/` is Guru Puja (RVK). International Peace Day (YPF) is at `/ypf`.
 
 ```bash
 yarn install

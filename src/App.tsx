@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import {
-  applyCampaignToUrl,
-  CAMPAIGNS,
-  parseCampaignId,
-  type CampaignId,
-  type FrameOption,
-} from './campaigns.ts';
+import { CAMPAIGNS, parseCampaignId, type FrameOption } from './campaigns.ts';
 import Footer from './Footer.tsx';
 import PhotoEditor from './PhotoEditor.tsx';
 import SafeImage from './SafeImage.tsx';
@@ -180,10 +174,7 @@ function shareToWhatsApp(frame: GeneratedFrame) {
 }
 
 export default function App() {
-  const [campaignId, setCampaignId] = useState<CampaignId>(() =>
-    parseCampaignId(window.location.search)
-  );
-  const campaign = CAMPAIGNS[campaignId];
+  const campaign = CAMPAIGNS[parseCampaignId(window.location.pathname)];
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [photoTransform, setPhotoTransform] = useState<PhotoTransform>(DEFAULT_TRANSFORM);
@@ -191,16 +182,6 @@ export default function App() {
   const [isReEditing, setIsReEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const generationIdRef = useRef(0);
-  const selectCampaignRef = useRef<(id: CampaignId, updateHistory: boolean) => void>(() => {});
-
-  useEffect(() => {
-    document.title = campaign.documentTitle;
-    const description = document.querySelector('meta[name="description"]');
-    if (description) {
-      description.setAttribute('content', campaign.description);
-    }
-  }, [campaign]);
 
   useEffect(() => {
     return () => {
@@ -239,74 +220,21 @@ export default function App() {
     }
   };
 
-  const processFrames = async (
-    file: File,
-    transform: PhotoTransform,
-    nextFrames: readonly FrameOption[]
-  ) => {
-    const requestId = ++generationIdRef.current;
-    setFrames(null);
-    setIsLoading(true);
-    try {
-      const generated = await generateFrames(file, transform, nextFrames);
-      if (requestId !== generationIdRef.current) return;
-      setFrames(generated);
-    } catch (error) {
-      if (requestId !== generationIdRef.current) return;
-      console.error('Failed to process image:', error);
-      alert('Failed to process image. Please try again.');
-    } finally {
-      if (requestId === generationIdRef.current) {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const selectCampaign = (id: CampaignId, updateHistory: boolean) => {
-    if (id === campaignId) return;
-
-    if (updateHistory) {
-      const url = new URL(window.location.href);
-      applyCampaignToUrl(url, id);
-      window.history.pushState(null, '', url);
-    }
-
-    setCampaignId(id);
-
-    if (uploadedFile && (frames || isLoading)) {
-      void processFrames(uploadedFile, photoTransform, CAMPAIGNS[id].frames);
-    }
-  };
-
   const handleConfirmCrop = async (transform: PhotoTransform) => {
     if (!uploadedFile) return;
 
     setPhotoTransform(transform);
-    await processFrames(uploadedFile, transform, campaign.frames);
+    setFrames(null);
+    setIsLoading(true);
+    try {
+      setFrames(await generateFrames(uploadedFile, transform, campaign.frames));
+    } catch (error) {
+      console.error('Failed to process image:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  const handleSelectCampaign = (id: CampaignId) => {
-    if (isLoading) return;
-    selectCampaign(id, true);
-  };
-
-  useEffect(() => {
-    selectCampaignRef.current = selectCampaign;
-  });
-
-  useEffect(() => {
-    const onPopState = () => {
-      selectCampaignRef.current(parseCampaignId(window.location.search), false);
-    };
-
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
-
-  const switcherTabClass = (active: boolean) =>
-    `rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-60 sm:text-sm ${
-      active ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-    }`;
 
   return (
     <div className="flex min-h-screen flex-col p-4">
@@ -314,26 +242,6 @@ export default function App() {
         <h1 className="bg-gradient-to-r from-umang-purple via-umang-cyan to-umang-green bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
           Umang
         </h1>
-        <nav
-          className="mt-4 flex rounded-full border border-slate-200 bg-slate-100 p-1"
-          aria-label="Occasion"
-        >
-          {Object.values(CAMPAIGNS).map((option) => {
-            const active = option.id === campaign.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                disabled={isLoading}
-                onClick={() => handleSelectCampaign(option.id)}
-                className={switcherTabClass(active)}
-                aria-current={active ? 'page' : undefined}
-              >
-                {option.name}
-              </button>
-            );
-          })}
-        </nav>
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-3">
