@@ -4,7 +4,7 @@ export type FrameOption = {
   filename: string;
 };
 
-export type CampaignId = 'ipd' | 'guru-puja';
+type CampaignId = 'ipd' | 'guru-puja';
 
 type CampaignAccent = {
   text: string;
@@ -14,15 +14,12 @@ type CampaignAccent = {
 };
 
 type Campaign = {
-  id: CampaignId;
   name: string;
-  documentTitle: string;
-  description: string;
   accent: CampaignAccent;
   frames: readonly [FrameOption, ...FrameOption[]];
 };
 
-const DEFAULT_CAMPAIGN_ID: CampaignId = 'ipd';
+const DEFAULT_CAMPAIGN_ID: CampaignId = 'guru-puja';
 
 const UMANG_ACCENT: CampaignAccent = {
   text: 'text-umang-cyan',
@@ -40,10 +37,7 @@ const PEACE_ACCENT: CampaignAccent = {
 
 export const CAMPAIGNS: Record<CampaignId, Campaign> = {
   ipd: {
-    id: 'ipd',
     name: 'International Peace Day',
-    documentTitle: 'Umang · International Peace Day',
-    description: 'Create an International Peace Day DP from your photo',
     accent: PEACE_ACCENT,
     frames: [
       {
@@ -54,10 +48,7 @@ export const CAMPAIGNS: Record<CampaignId, Campaign> = {
     ],
   },
   'guru-puja': {
-    id: 'guru-puja',
     name: 'Guru Puja',
-    documentTitle: 'Umang · Guru Puja',
-    description: 'Create a Guru Puja DP from your photo',
     accent: UMANG_ACCENT,
     frames: [
       {
@@ -84,17 +75,7 @@ export const CAMPAIGNS: Record<CampaignId, Campaign> = {
   },
 };
 
-export function parseCampaignId(search: string): CampaignId {
-  return new URLSearchParams(search).get('campaign') === 'guru-puja'
-    ? 'guru-puja'
-    : DEFAULT_CAMPAIGN_ID;
-}
-
-export function applyCampaignToUrl(url: URL, id: CampaignId): void {
-  if (id === DEFAULT_CAMPAIGN_ID) {
-    url.searchParams.delete('campaign');
-    return;
-  }
-
-  url.searchParams.set('campaign', id);
+export function parseCampaignId(pathname: string): CampaignId {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  return path === '/ypf' ? 'ipd' : DEFAULT_CAMPAIGN_ID;
 }
