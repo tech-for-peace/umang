@@ -1,5 +1,5 @@
 export const CANVAS_SIZE = 800;
-export const CIRCLE_RADIUS = 336;
+const CIRCLE_RADIUS = 336;
 export const CIRCLE_DIAMETER_RATIO = (CIRCLE_RADIUS * 2) / CANVAS_SIZE;
 
 export type PhotoTransform = {
@@ -14,8 +14,21 @@ export const DEFAULT_TRANSFORM: PhotoTransform = {
   panY: 0,
 };
 
-export const MIN_ZOOM = 1;
+export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 3;
+
+function getScaledPhotoSize(
+  imageWidth: number,
+  imageHeight: number,
+  zoom: number,
+  circleRadius: number
+) {
+  const scale = ((circleRadius * 2) / Math.min(imageWidth, imageHeight)) * zoom;
+  return {
+    width: imageWidth * scale,
+    height: imageHeight * scale,
+  };
+}
 
 export function clampTransform(
   transform: PhotoTransform,
@@ -23,12 +36,9 @@ export function clampTransform(
   imageHeight: number
 ): PhotoTransform {
   const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, transform.zoom));
-  const baseScale = (CIRCLE_RADIUS * 2) / Math.min(imageWidth, imageHeight);
-  const scale = baseScale * zoom;
-  const width = imageWidth * scale;
-  const height = imageHeight * scale;
-  const maxPanX = Math.max(0, width / 2 - CIRCLE_RADIUS);
-  const maxPanY = Math.max(0, height / 2 - CIRCLE_RADIUS);
+  const { width, height } = getScaledPhotoSize(imageWidth, imageHeight, zoom, CIRCLE_RADIUS);
+  const maxPanX = Math.abs(width / 2 - CIRCLE_RADIUS);
+  const maxPanY = Math.abs(height / 2 - CIRCLE_RADIUS);
 
   return {
     zoom,
@@ -45,15 +55,19 @@ export function drawPhotoInCircle(
   transform: PhotoTransform
 ) {
   const center = CANVAS_SIZE / 2;
-  const baseScale = (CIRCLE_RADIUS * 2) / Math.min(imageWidth, imageHeight);
-  const scale = baseScale * transform.zoom;
-  const width = imageWidth * scale;
-  const height = imageHeight * scale;
+  const { width, height } = getScaledPhotoSize(
+    imageWidth,
+    imageHeight,
+    transform.zoom,
+    CIRCLE_RADIUS
+  );
 
   ctx.save();
   ctx.beginPath();
   ctx.arc(center, center, CIRCLE_RADIUS, 0, Math.PI * 2);
   ctx.clip();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
   ctx.drawImage(
     image,
     center + transform.panX - width / 2,
@@ -71,11 +85,12 @@ export function getImageLayout(
   viewportSize: number
 ) {
   const scaleFactor = viewportSize / CANVAS_SIZE;
-  const circleRadius = CIRCLE_RADIUS * scaleFactor;
-  const baseScale = (circleRadius * 2) / Math.min(imageWidth, imageHeight);
-  const scale = baseScale * transform.zoom;
-  const width = imageWidth * scale;
-  const height = imageHeight * scale;
+  const { width, height } = getScaledPhotoSize(
+    imageWidth,
+    imageHeight,
+    transform.zoom,
+    CIRCLE_RADIUS * scaleFactor
+  );
   const center = viewportSize / 2;
 
   return {

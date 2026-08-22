@@ -4,7 +4,7 @@ export type FrameOption = {
   filename: string;
 };
 
-type CampaignId = 'ipd' | 'guru-puja';
+export type CampaignId = 'ipd' | 'guru-puja';
 
 type CampaignAccent = {
   text: string;
@@ -90,6 +90,11 @@ export function parseCampaignId(search: string): CampaignId {
     : DEFAULT_CAMPAIGN_ID;
 }
 
-export function campaignHref(id: CampaignId): string {
-  return id === DEFAULT_CAMPAIGN_ID ? '/' : `/?campaign=${id}`;
+export function applyCampaignToUrl(url: URL, id: CampaignId): void {
+  if (id === DEFAULT_CAMPAIGN_ID) {
+    url.searchParams.delete('campaign');
+    return;
+  }
+
+  url.searchParams.set('campaign', id);
 }

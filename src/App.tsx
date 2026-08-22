@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { CAMPAIGNS, campaignHref, parseCampaignId, type FrameOption } from './campaigns.ts';
+import {
+  applyCampaignToUrl,
+  CAMPAIGNS,
+  parseCampaignId,
+  type CampaignId,
+  type FrameOption,
+} from './campaigns.ts';
 import Footer from './Footer.tsx';
 import PhotoEditor from './PhotoEditor.tsx';
 import SafeImage from './SafeImage.tsx';
@@ -174,7 +180,10 @@ function shareToWhatsApp(frame: GeneratedFrame) {
 }
 
 export default function App() {
-  const campaign = CAMPAIGNS[parseCampaignId(window.location.search)];
+  const [campaignId, setCampaignId] = useState<CampaignId>(() =>
+    parseCampaignId(window.location.search)
+  );
+  const campaign = CAMPAIGNS[campaignId];
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [photoTransform, setPhotoTransform] = useState<PhotoTransform>(DEFAULT_TRANSFORM);
@@ -182,6 +191,8 @@ export default function App() {
   const [isReEditing, setIsReEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const generationIdRef = useRef(0);
+  const selectCampaignRef = useRef<(id: CampaignId, updateHistory: boolean) => void>(() => {});
 
   useEffect(() => {
     document.title = campaign.documentTitle;
@@ -228,23 +239,72 @@ export default function App() {
     }
   };
 
+  const processFrames = async (
+    file: File,
+    transform: PhotoTransform,
+    nextFrames: readonly FrameOption[]
+  ) => {
+    const requestId = ++generationIdRef.current;
+    setFrames(null);
+    setIsLoading(true);
+    try {
+      const generated = await generateFrames(file, transform, nextFrames);
+      if (requestId !== generationIdRef.current) return;
+      setFrames(generated);
+    } catch (error) {
+      if (requestId !== generationIdRef.current) return;
+      console.error('Failed to process image:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      if (requestId === generationIdRef.current) {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const selectCampaign = (id: CampaignId, updateHistory: boolean) => {
+    if (id === campaignId) return;
+
+    if (updateHistory) {
+      const url = new URL(window.location.href);
+      applyCampaignToUrl(url, id);
+      window.history.pushState(null, '', url);
+    }
+
+    setCampaignId(id);
+
+    if (uploadedFile && (frames || isLoading)) {
+      void processFrames(uploadedFile, photoTransform, CAMPAIGNS[id].frames);
+    }
+  };
+
   const handleConfirmCrop = async (transform: PhotoTransform) => {
     if (!uploadedFile) return;
 
     setPhotoTransform(transform);
-    setIsLoading(true);
-    try {
-      setFrames(await generateFrames(uploadedFile, transform, campaign.frames));
-    } catch (error) {
-      console.error('Failed to process image:', error);
-      alert('Failed to process image. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    await processFrames(uploadedFile, transform, campaign.frames);
   };
 
+  const handleSelectCampaign = (id: CampaignId) => {
+    if (isLoading) return;
+    selectCampaign(id, true);
+  };
+
+  useEffect(() => {
+    selectCampaignRef.current = selectCampaign;
+  });
+
+  useEffect(() => {
+    const onPopState = () => {
+      selectCampaignRef.current(parseCampaignId(window.location.search), false);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const switcherTabClass = (active: boolean) =>
-    `rounded-full px-3 py-1 text-xs font-semibold transition-colors sm:text-sm ${
+    `rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-60 sm:text-sm ${
       active ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
     }`;
 
@@ -261,14 +321,16 @@ export default function App() {
           {Object.values(CAMPAIGNS).map((option) => {
             const active = option.id === campaign.id;
             return (
-              <a
+              <button
                 key={option.id}
-                href={campaignHref(option.id)}
+                type="button"
+                disabled={isLoading}
+                onClick={() => handleSelectCampaign(option.id)}
                 className={switcherTabClass(active)}
                 aria-current={active ? 'page' : undefined}
               >
                 {option.name}
-              </a>
+              </button>
             );
           })}
         </nav>
