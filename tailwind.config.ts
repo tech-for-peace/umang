@@ -14,10 +14,6 @@ export default {
           navy: '#004aad',
         },
       },
-      fontFamily: {
-        sans: ['"Source Sans 3"', 'sans-serif'],
-        heading: ['Quicksand', 'sans-serif'],
-      },
     },
   },
   plugins: [],

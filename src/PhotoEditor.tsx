@@ -216,7 +216,7 @@ export default function PhotoEditor({
                     width: layout.width,
                     height: layout.height,
                   }
-                : { left: 0, top: 0, width: '100%', height: '100%', objectFit: 'cover' }
+                : undefined
             }
             onLoad={(event) => {
               const { naturalWidth, naturalHeight } = event.currentTarget;

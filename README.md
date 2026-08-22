@@ -2,7 +2,7 @@
 
 Upload a photo and get a framed DP to download or share.
 
-The default frames are for International Peace Day. Guru Puja frames remain available at `/?campaign=guru-puja`.
+Switch between International Peace Day and Guru Puja frames from the header. Guru Puja is also available at `/?campaign=guru-puja`.
 
 ```bash
 yarn install
