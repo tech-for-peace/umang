@@ -42,7 +42,7 @@ export const CAMPAIGNS: Record<CampaignId, Campaign> = {
   ipd: {
     id: 'ipd',
     name: 'International Peace Day',
-    documentTitle: 'Umang',
+    documentTitle: 'Umang · International Peace Day',
     description: 'Create an International Peace Day DP from your photo',
     accent: PEACE_ACCENT,
     frames: [
